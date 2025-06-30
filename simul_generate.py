@@ -1,3 +1,18 @@
+import sys
+import collections
+import os
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import math
+import datetime
+import gc
+from functools import reduce
+from scipy import linalg
+from pathlib import Path
+# SIMUL_GEN_PATH = Path(__file__).resolve()
+# PROJ_ROOT_PATH = SIMUL_GEN_PATH.parent.parent.parent
+# sys.path.insert(0, os.fspath(PROJ_ROOT_PATH))
 
 class CFN(object):
 
@@ -270,7 +285,6 @@ class CCIR(object):
 
     # MC симуляция для модели CIR++
     def run_cirpp_mc(self, ds_period=None):
-
         self.calc_phi_AB()
 
         self.xs[0][:] = self.X[0][0, :] - self.phi[0]  # = self.x0
@@ -709,9 +723,12 @@ class Simulator:
         cir_sx = self.sim_params['cir_sx']
         cir_a = self.sim_params['cir_a']
         cir_tx = self.sim_params['cir_tx']
-
         cir_s = 0.032
         cir_ax = None
+        cir_sx = None
+        # cir_a 0.064
+        # cir_tx 0.08
+        
         [round_df_dict(df) for df in [macro_data, model_specs, Corr]]
         print("## Generate Macro ##")
         print('seed: ' + str(seed))
@@ -878,10 +895,13 @@ class Simulator:
         for var in ['cpi_yoy', 'rate', 'gdp_yoy', 'key_rate', 'MR', 'Corp_Rate', 'hpi_yoy', 'hpi_pr_yoy', 'cost_m_yoy', 'RUO_3m' ,'RUO_6m','NPL_ret','NPL_FIN','NPL_corp']:   
             variables[var][:, -15:] = macro_data[var][-15:]
         # индекс гос поддержки ипотеки ( объем поддерки (руб) / стоимсость 1 кв.м (руб)) - расчет описан в specs_debug.ipynd
-        
+        # ind3MR = [0.005, 0.005, 0.004, 0.004, 0.004, 0.004] + [0.002] * (int(12 * T) - 15 - 12) + [0.003, 0.001, 0.002, 0.003, 0.003, 0.003, 0.003, 0.003, 0.004, 0.005, 0.004, 0.004, 0.005]
+        # ind3MR = [0.002, 0.002, 0.002, 0.002, 0.002, 0.002] + [0.002] * (int(12 * T) - 15 - 12) + [0.005, 0.002, 0.002, 0.003, 0.003, 0.003, 0.006, 0.001, 0.001, 0.002, 0.002, 0.001, 0.001 ]
         ind3MR = [0.003, 0.003, 0.003, 0.003, 0.003, 0.003] + [0.003] * (int(12 * T) - 15 - 12) + [0.005, 0.002, 0.002, 0.003, 0.003, 0.003, 0.006, 0.001, 0.001, 0.002, 0.002, 0.001, 0.001 ]
         
-
+        # [0.003, 0.001, 0.002, 0.003, 0.003, 0.003, 0.003, 0.003, 0.004, 0.005, 0.004, 0.004, 0.005] данные с 2022-12-31 по 2023-12-31
+        # [0.005, 0.002, 0.002, 0.003, 0.003, 0.003, 0.006, 0.001, 0.001, 0.002, 0.002, 0.001, 0.001 ] анные с 2023-12-31 по 2023-12-31
+        
         print("len(macro_data['cpi_yoy'][-15:]):", len(macro_data['cpi_yoy']))
         print("len(ind3MR) :", len(ind3MR))
         print("(int(12 * T) - 15)/12 =", (12 * T - 15)/12)
@@ -1028,7 +1048,7 @@ class Simulator:
         
         res_vec = dict(zip(sim_list_names, sim_list))
     
-        
+        display("macro_cir", macro_cir)
         res_vec = {
             'cpi_yoy': res_vec['cpi_yoy'][:, :-15],
             'gdp_yoy': res_vec['gdp_yoy'][:, :-15],
@@ -1074,9 +1094,3 @@ class Simulator:
         export['period'] += 1
 
         return export, res_vec
-    
-            # ind3MR = [0.005, 0.005, 0.004, 0.004, 0.004, 0.004] + [0.002] * (int(12 * T) - 15 - 12) + [0.003, 0.001, 0.002, 0.003, 0.003, 0.003, 0.003, 0.003, 0.004, 0.005, 0.004, 0.004, 0.005]
-        # ind3MR = [0.002, 0.002, 0.002, 0.002, 0.002, 0.002] + [0.002] * (int(12 * T) - 15 - 12) + [0.005, 0.002, 0.002, 0.003, 0.003, 0.003, 0.006, 0.001, 0.001, 0.002, 0.002, 0.001, 0.001 ]
-                # [0.003, 0.001, 0.002, 0.003, 0.003, 0.003, 0.003, 0.003, 0.004, 0.005, 0.004, 0.004, 0.005] данные с 2022-12-31 по 2023-12-31
-        # [0.005, 0.002, 0.002, 0.003, 0.003, 0.003, 0.006, 0.001, 0.001, 0.002, 0.002, 0.001, 0.001 ] анные с 2023-12-31 по 2023-12-31
-        
